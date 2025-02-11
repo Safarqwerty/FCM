@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(AdminUserSeeder::class);
+        $this->call(StudentSeeder::class);
         $this->call(PermissionsSeeder::class);
     }
 

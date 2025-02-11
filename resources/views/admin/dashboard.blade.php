@@ -85,6 +85,22 @@
                             </th>
                             <th
                                 class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tanggungan
+                            </th>
+                            <th
+                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tagihan Air
+                            </th>
+                            <th
+                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tagihan Listrik
+                            </th>
+                            <th
+                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Nilai Rapor
+                            </th>
+                            <th
+                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Aksi
                             </th>
                         </tr>
@@ -92,7 +108,7 @@
                     <tbody class="bg-white">
                         @if ($students->isEmpty())
                             <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colspan="10" class="px-6 py-4 text-center text-sm text-gray-500">
                                     Data masih kosong.
                                 </td>
                             </tr>
@@ -108,7 +124,7 @@
                                             <div class="ml-4">
                                                 <div class="text-sm font-medium text-gray-900">{{ $student->nama }}
                                                 </div>
-                                                <div class="text-sm text-gray-500">NIS: {{ $student->nis }}</div>
+                                                <div class="text-sm text-gray-500">{{ $student->nis }}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -125,6 +141,22 @@
                                     <td
                                         class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
                                         Rp {{ number_format($student->pendapatan, 0, ',', '.') }}
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
+                                        {{ $student->tanggungan }} orang
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
+                                        Rp {{ number_format($student->tagihan_air, 0, ',', '.') }}
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
+                                        Rp {{ number_format($student->tagihan_listrik, 0, ',', '.') }}
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
+                                        {{ $student->nilai_rapor }}
                                     </td>
                                     <td
                                         class="px-6 py-4 whitespace-no-wrap text-right border-b border-gray-200 text-sm font-medium">

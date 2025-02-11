@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\ClassRoomController;
+use App\Http\Controllers\ClusteringController;
 
 // Halaman awal
 Route::get('/', function () {
@@ -41,9 +42,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('/class/{classRoom}', [ClassRoomController::class, 'update'])->name('class.update');
     Route::delete('/class/{classRoom}', [ClassRoomController::class, 'destroy'])->name('class.destroy');
 
-    Route::get('/tables', function () {
-        return view('admin.tables');
-    })->name('tables');
+    Route::get('/tables', [ClusteringController::class, 'calculate'])->name('tables');
 
     Route::get('/ui-elements', function () {
         return view('admin.ui-elements');

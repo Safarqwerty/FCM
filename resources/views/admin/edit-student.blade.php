@@ -1,5 +1,5 @@
 <x-admin-layout>
-    <h3 class="text-gray-700 text-3xl font-semibold">{{ $student->exists ? 'Edit' : 'Tambah' }} Siswa</h3>
+    <h3 class="text-gray-700 text-3xl font-medium">{{ $student->exists ? 'Edit' : 'Tambah' }} Siswa</h3>
 
     <div class="mt-4">
         <div class="mt-4">

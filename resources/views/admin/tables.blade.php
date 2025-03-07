@@ -33,6 +33,13 @@
             <div class="mt-6 bg-white shadow rounded-lg p-4">
                 <h6 class="text-lg font-bold text-gray-700 mb-4">Hasil Clustering Beasiswa</h6>
                 <div class="overflow-x-auto">
+                    <form action="{{ route('admin.clustering.calculate') }}" method="POST" class="ml-auto mb-6">
+                        @csrf
+                        <button type="submit"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            Perbarui Hasil
+                        </button>
+                    </form>
                     <table class="min-w-full leading-normal">
                         <thead>
                             <tr>

@@ -32,7 +32,7 @@ class AuthenticatedSessionController extends Controller
 
         // Periksa role user dan arahkan ke halaman sesuai role
         if ($request->user()->hasRole('admin')) {
-            return redirect()->intended('/admin');
+            return redirect()->intended('/admin/dashboard');
         }
 
         // Default: arahkan ke dashboard

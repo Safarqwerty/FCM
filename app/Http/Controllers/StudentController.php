@@ -5,18 +5,59 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ClassRoom;
 use App\Models\Student;
+use App\Models\User;
 
 class StudentController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        $students = Student::with('classRoom')->paginate(10);
-        return view('admin.dashboard', compact('students'));
-    }
+        // Get filter parameters
+        $search = $request->input('search');
+        $classId = $request->input('class_id');
+        $gender = $request->input('gender');
+        $angkatan = $request->input('angkatan');
 
+        // Build query with filters
+        $studentsQuery = Student::query()
+            ->with('classRoom')
+            ->when($search, function($query) use ($search) {
+                return $query->where(function($q) use ($search) {
+                    $q->where('nama', 'like', "%{$search}%")
+                      ->orWhere('nis', 'like', "%{$search}%");
+                });
+            })
+            ->when($classId, function($query) use ($classId) {
+                // Change this line to match your actual column name
+                return $query->where('kelas_id', $classId); // Or use 'classroom_id' or whatever the actual column name is
+            })
+            ->when($gender, function($query) use ($gender) {
+                return $query->where('jenis_kelamin', $gender);
+            })
+            ->when($angkatan, function($query) use ($angkatan) {
+                return $query->where('angkatan', $angkatan);
+            })
+            ->orderBy('nama', 'asc');
+
+        // Get paginated results
+        $students = $studentsQuery->paginate(10);
+
+        // Get data for dropdown filters
+        $classRooms = ClassRoom::orderBy('nama_kelas')->get();
+        $batchYears = Student::distinct()->orderBy('angkatan', 'desc')->pluck('angkatan');
+
+        // Get statistics
+        $stats = [
+            'student_count' => Student::count(),
+            'class_count' => ClassRoom::count(),
+            'admin_count' => User::count()
+        ];
+
+        return view('admin.dashboard', compact('students', 'stats', 'classRooms', 'batchYears'));
+    }
+    
     /**
      * Show the form for creating a new resource.
      */
@@ -53,7 +94,10 @@ class StudentController extends Controller
                 throw new \Exception('Failed to create student record');
             }
 
-            return redirect()->route('admin.dashboard')->with('success', 'Data siswa berhasil ditambahkan.');
+            return redirect()->route('admin.dashboard', $student)->with([
+                'success' => 'Data siswa berhasil ditambahkan.',
+                'type' => 'create'
+            ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
                 ->withErrors($e->errors())
@@ -70,7 +114,8 @@ class StudentController extends Controller
      */
     public function show(Student $student)
     {
-        return view('students.show', compact('student'));
+        $class = ClassRoom::all();
+        return view('admin.show-student', compact('student', 'class'));
     }
 
     /**
@@ -115,7 +160,10 @@ class StudentController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'],
         ]);
 
-        return redirect()->route('admin.dashboard')->with('success', 'Data siswa berhasil diperbarui.');
+        return redirect()->route('admin.dashboard', $student)->with([
+            'success' => 'Data siswa berhasil diperbarui.',
+            'type' => 'update'
+        ]);
     }
 
     /**
@@ -124,6 +172,9 @@ class StudentController extends Controller
     public function destroy(Student $student)
     {
         $student->delete();
-        return redirect()->route('admin.dashboard')->with('success', 'Data siswa berhasil dihapus.');
+        return redirect()->route('admin.dashboard')->with([
+            'success' => 'Data siswa berhasil dihapus.',
+            'type' => 'delete'
+        ]);
     }
 }

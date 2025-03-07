@@ -19,8 +19,57 @@ class ClusteringController extends Controller
      */
     public function index()
     {
-        $students = Student::all();
-        return view('clustering.index', compact('students'));
+        // Ambil hasil clustering terakhir dari database
+        $lastResults = $this->getLastResults();
+
+        if ($lastResults) {
+            return view('admin.tables', [
+                'results' => $lastResults['results'],
+                'stats' => $lastResults['stats'],
+                'iteration_count' => $lastResults['iteration_count'],
+                'objective_function' => $lastResults['objective_function'],
+                'iteration_history' => $lastResults['iteration_history']
+            ]);
+        }
+
+        // Jika belum ada hasil, tampilkan halaman kosong
+        return view('admin.tables', [
+            'results' => [],
+            'stats' => null,
+            'iteration_count' => 0,
+            'objective_function' => 0,
+            'iteration_history' => []
+        ]);
+    }
+
+    private function getLastResults()
+    {
+        $clusteringResults = ClusteringResult::with('student')->get();
+
+        if ($clusteringResults->isEmpty()) {
+            return null;
+        }
+
+        $results = [];
+        foreach ($clusteringResults as $result) {
+            $results[] = [
+                'student' => $result->student,
+                'cluster' => $result->cluster,
+                'membership_values' => json_decode($result->membership_values),
+                'confidence' => $result->confidence,
+                'eligible' => $result->eligible
+            ];
+        }
+
+        $stats = $this->calculateStatistics($results);
+
+        return [
+            'results' => $results,
+            'stats' => $stats,
+            'iteration_count' => session('last_iteration_count', 0),
+            'objective_function' => session('last_objective_function', 0),
+            'iteration_history' => session('iteration_history', [])
+        ];
     }
 
     /**
@@ -29,6 +78,9 @@ class ClusteringController extends Controller
     public function calculate()
     {
         try {
+            // Hapus hasil clustering sebelumnya
+            ClusteringResult::truncate();
+
             $students = Student::all();
 
             if ($students->isEmpty()) {
@@ -63,18 +115,23 @@ class ClusteringController extends Controller
             $results = $this->determineClusterResults($students, $membershipMatrix);
             $stats = $this->calculateStatistics($results);
 
-            // Simpan hasil clustering ke database
+            // Simpan hasil ke database
             foreach ($results as $result) {
-                ClusteringResult::updateOrCreate(
-                    ['student_id' => $result['student']->id], // Jika sudah ada, update
-                    [
-                        'cluster' => $result['cluster'],
-                        'membership_values' => json_encode($result['membership_values']),
-                        'confidence' => $result['confidence'],
-                        'eligible' => $result['eligible']
-                    ]
-                );
+                ClusteringResult::create([
+                    'student_id' => $result['student']->id,
+                    'cluster' => $result['cluster'],
+                    'membership_values' => json_encode($result['membership_values']),
+                    'confidence' => $result['confidence'],
+                    'eligible' => $result['eligible']
+                ]);
             }
+
+            // Simpan informasi iterasi ke session
+            session([
+                'last_iteration_count' => $iteration,
+                'last_objective_function' => $objectiveFunction,
+                'iteration_history' => $iterationHistory
+            ]);
 
             Log::info('Clustering completed', [
                 'iterations' => $iteration,
@@ -82,13 +139,7 @@ class ClusteringController extends Controller
                 'stats' => $stats
             ]);
 
-            return view('admin.tables', [
-                'results' => $results,
-                'stats' => $stats,
-                'iteration_count' => $iteration,
-                'objective_function' => $objectiveFunction,
-                'iteration_history' => $iterationHistory
-            ]);
+            return redirect()->route('clustering.index')->with('success', 'Hasil clustering telah diperbarui.');
 
         } catch (\Exception $e) {
             Log::error('Clustering error: ' . $e->getMessage());

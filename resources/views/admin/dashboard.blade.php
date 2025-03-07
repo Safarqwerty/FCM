@@ -14,7 +14,8 @@
                         </svg>
                     </div>
                     <div class="mx-5">
-                        <h4 class="text-2xl font-semibold text-gray-700">8,282</h4>
+                        <h4 class="text-2xl font-semibold text-gray-700">{{ number_format($stats['student_count']) }}
+                        </h4>
                         <div class="text-gray-500">Siswa</div>
                     </div>
                 </div>
@@ -31,7 +32,7 @@
                         </svg>
                     </div>
                     <div class="mx-5">
-                        <h4 class="text-2xl font-semibold text-gray-700">200,521</h4>
+                        <h4 class="text-2xl font-semibold text-gray-700">{{ number_format($stats['class_count']) }}</h4>
                         <div class="text-gray-500">Kelas</div>
                     </div>
                 </div>
@@ -48,12 +49,105 @@
                         </svg>
                     </div>
                     <div class="mx-5">
-                        <h4 class="text-2xl font-semibold text-gray-700">215,542</h4>
+                        <h4 class="text-2xl font-semibold text-gray-700">{{ number_format($stats['admin_count']) }}</h4>
                         <div class="text-gray-500">Admin</div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    @if (session('success'))
+        @php
+            $colorClasses = match (session('type')) {
+                'create' => 'bg-green-100 border-green-400 text-green-700',
+                'update' => 'bg-yellow-100 border-yellow-400 text-yellow-700',
+                'delete' => 'bg-red-100 border-red-400 text-red-700',
+                default => 'bg-blue-100 border-blue-400 text-blue-700',
+            };
+        @endphp
+
+        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 10000)" x-show="show" x-transition
+            class="mt-4 {{ $colorClasses }} px-4 py-3 rounded relative mb-4 border" role="alert">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    <!-- Search and Filter Section -->
+    <div class="mt-6 bg-white rounded-lg shadow-md p-6">
+        <form action="{{ route('admin.dashboard') }}" method="GET" class="space-y-4">
+            <div class="flex flex-wrap -mx-2">
+                <!-- Search Field -->
+                <div class="px-2 w-full md:w-1/3 mb-4 md:mb-0">
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
+                    <input type="text" name="search" id="search" placeholder="Cari nama atau NIS..."
+                        value="{{ request('search') }}"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+
+                <!-- Class Filter -->
+                <div class="px-2 w-full md:w-1/5 mb-4 md:mb-0">
+                    <label for="class_id" class="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
+                    <select name="class_id" id="class_id"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <option value="">Semua Kelas</option>
+                        @foreach ($classRooms as $class)
+                            <option value="{{ $class->id }}"
+                                {{ request('class_id') == $class->id ? 'selected' : '' }}>
+                                {{ $class->nama_kelas }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Gender Filter -->
+                <div class="px-2 w-full md:w-1/5 mb-4 md:mb-0">
+                    <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label>
+                    <select name="gender" id="gender"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <option value="">Semua</option>
+                        <option value="Laki-laki" {{ request('gender') == 'Laki-laki' ? 'selected' : '' }}>Laki-laki
+                        </option>
+                        <option value="Perempuan" {{ request('gender') == 'Perempuan' ? 'selected' : '' }}>Perempuan
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Batch Year Filter -->
+                <div class="px-2 w-full md:w-1/5 mb-4 md:mb-0">
+                    <label for="angkatan" class="block text-sm font-medium text-gray-700 mb-1">Angkatan</label>
+                    <select name="angkatan" id="angkatan"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <option value="">Semua Angkatan</option>
+                        @foreach ($batchYears as $year)
+                            <option value="{{ $year }}" {{ request('angkatan') == $year ? 'selected' : '' }}>
+                                {{ $year }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Filter Button -->
+                <div class="px-2 w-full md:w-1/6 flex items-end">
+                    <button type="submit"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
+                            </path>
+                        </svg>
+                        Filter
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reset Filters Link -->
+            <div class="text-right">
+                <a href="{{ route('admin.dashboard') }}" class="text-sm text-indigo-600 hover:text-indigo-900">Reset
+                    Filter</a>
+            </div>
+        </form>
     </div>
 
     <div class="flex flex-col mt-8">
@@ -73,6 +167,10 @@
                             </th>
                             <th
                                 class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                NIS
+                            </th>
+                            <th
+                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Kelas
                             </th>
                             <th
@@ -81,23 +179,7 @@
                             </th>
                             <th
                                 class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Pendapatan
-                            </th>
-                            <th
-                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Tanggungan
-                            </th>
-                            <th
-                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Tagihan Air
-                            </th>
-                            <th
-                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Tagihan Listrik
-                            </th>
-                            <th
-                                class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Nilai Rapor
+                                Angkatan
                             </th>
                             <th
                                 class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -108,7 +190,7 @@
                     <tbody class="bg-white">
                         @if ($students->isEmpty())
                             <tr>
-                                <td colspan="10" class="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
                                     Data masih kosong.
                                 </td>
                             </tr>
@@ -119,18 +201,17 @@
                                         class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
                                         {{ ($students->currentPage() - 1) * $students->perPage() + $loop->iteration }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                        <div class="flex items-center">
-                                            <div class="ml-4">
-                                                <div class="text-sm font-medium text-gray-900">{{ $student->nama }}
-                                                </div>
-                                                <div class="text-sm text-gray-500">{{ $student->nis }}</div>
-                                            </div>
-                                        </div>
+                                    <td
+                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-900">
+                                        {{ $student->nama }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                        <div class="text-sm text-gray-900">{{ $student->classRoom->nama_kelas }}</div>
-                                        <div class="text-sm text-gray-500">{{ $student->angkatan }}</div>
+                                    <td
+                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
+                                        {{ $student->nis }}
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-900">
+                                        {{ $student->classRoom->nama_kelas }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
                                         <span
@@ -140,42 +221,14 @@
                                     </td>
                                     <td
                                         class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
-                                        Rp {{ number_format($student->pendapatan, 0, ',', '.') }}
+                                        {{ $student->angkatan }}
                                     </td>
                                     <td
-                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
-                                        {{ $student->tanggungan }} orang
-                                    </td>
-                                    <td
-                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
-                                        Rp {{ number_format($student->tagihan_air, 0, ',', '.') }}
-                                    </td>
-                                    <td
-                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
-                                        Rp {{ number_format($student->tagihan_listrik, 0, ',', '.') }}
-                                    </td>
-                                    <td
-                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm text-gray-500">
-                                        {{ $student->nilai_rapor }}
-                                    </td>
-                                    <td
-                                        class="px-6 py-4 whitespace-no-wrap text-right border-b border-gray-200 text-sm font-medium">
-                                        <div class="flex items-center space-x-3">
-                                            <a href="{{ route('admin.students.edit', ['student' => $student->id]) }}"
-                                                class="text-indigo-600 hover:text-indigo-900">
-                                                Edit
-                                            </a>
-                                            <form action="{{ route('admin.students.destroy', $student->id) }}"
-                                                method="POST" class="inline-block"
-                                                onsubmit="return confirm('Apakah Anda yakin ingin menghapus data siswa ini?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="text-red-600 hover:text-red-900 focus:outline-none">
-                                                    Hapus
-                                                </button>
-                                            </form>
-                                        </div>
+                                        class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm font-medium">
+                                        <a href="{{ route('admin.students.show', ['student' => $student->id]) }}"
+                                            class="text-indigo-600 hover:text-indigo-900">
+                                            Detail
+                                        </a>
                                     </td>
                                 </tr>
                             @endforeach
@@ -183,7 +236,7 @@
                     </tbody>
                 </table>
                 <div class="px-6 py-4">
-                    {{ $students->links() }}
+                    {{ $students->appends(request()->query())->links() }}
                 </div>
             </div>
         </div>

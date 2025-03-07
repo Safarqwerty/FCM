@@ -29,7 +29,7 @@ Route::middleware('auth')->group(function () {
 // Grup rute untuk admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     // Rute halaman utama admin
-    Route::get('/', [StudentController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('dashboard');
 
     Route::resource('students', StudentController::class);
 
@@ -42,7 +42,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('/class/{classRoom}', [ClassRoomController::class, 'update'])->name('class.update');
     Route::delete('/class/{classRoom}', [ClassRoomController::class, 'destroy'])->name('class.destroy');
 
-    Route::get('/tables', [ClusteringController::class, 'calculate'])->name('tables');
+    Route::get('/tables', [ClusteringController::class, 'index'])->name('tables');  // This will make it accessible as 'admin.tables'
+    Route::post('/clustering/calculate', [ClusteringController::class, 'calculate'])->name('clustering.calculate');
 
     Route::get('/ui-elements', function () {
         return view('admin.ui-elements');

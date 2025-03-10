@@ -31,9 +31,9 @@
 
             <div x-cloak x-show="dropdownOpen"
                 class="absolute right-0 z-10 w-48 mt-2 overflow-hidden bg-white rounded-md shadow-xl">
-                <a href="{{ route('profile.edit') }}"
+                <a href="{{ route('admin.profile.edit') }}"
                     class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-600 hover:text-white">
-                    Setting
+                    Profile
                 </a>
 
                 <!-- Authentication -->

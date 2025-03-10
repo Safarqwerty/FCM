@@ -75,78 +75,63 @@
 
     <!-- Search and Filter Section -->
     <div class="mt-6 bg-white rounded-lg shadow-md p-6">
-        <form action="{{ route('admin.dashboard') }}" method="GET" class="space-y-4">
-            <div class="flex flex-wrap -mx-2">
-                <!-- Search Field -->
-                <div class="px-2 w-full md:w-1/3 mb-4 md:mb-0">
-                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
-                    <input type="text" name="search" id="search" placeholder="Cari nama atau NIS..."
-                        value="{{ request('search') }}"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                </div>
-
-                <!-- Class Filter -->
-                <div class="px-2 w-full md:w-1/5 mb-4 md:mb-0">
-                    <label for="class_id" class="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
-                    <select name="class_id" id="class_id"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="">Semua Kelas</option>
-                        @foreach ($classRooms as $class)
-                            <option value="{{ $class->id }}"
-                                {{ request('class_id') == $class->id ? 'selected' : '' }}>
-                                {{ $class->nama_kelas }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Gender Filter -->
-                <div class="px-2 w-full md:w-1/5 mb-4 md:mb-0">
-                    <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label>
-                    <select name="gender" id="gender"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="">Semua</option>
-                        <option value="Laki-laki" {{ request('gender') == 'Laki-laki' ? 'selected' : '' }}>Laki-laki
-                        </option>
-                        <option value="Perempuan" {{ request('gender') == 'Perempuan' ? 'selected' : '' }}>Perempuan
-                        </option>
-                    </select>
-                </div>
-
-                <!-- Batch Year Filter -->
-                <div class="px-2 w-full md:w-1/5 mb-4 md:mb-0">
-                    <label for="angkatan" class="block text-sm font-medium text-gray-700 mb-1">Angkatan</label>
-                    <select name="angkatan" id="angkatan"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="">Semua Angkatan</option>
-                        @foreach ($batchYears as $year)
-                            <option value="{{ $year }}" {{ request('angkatan') == $year ? 'selected' : '' }}>
-                                {{ $year }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Filter Button -->
-                <div class="px-2 w-full md:w-1/6 flex items-end">
-                    <button type="submit"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
-                            </path>
-                        </svg>
-                        Filter
-                    </button>
-                </div>
+        <form action="{{ route('admin.dashboard') }}" method="GET" class="flex flex-wrap items-end gap-2">
+            <div class="flex-1">
+                <label for="search" class="block text-sm font-medium text-gray-700">Pencarian</label>
+                <input type="text" name="search" id="search" placeholder="Cari nama atau NIS..."
+                    value="{{ request('search') }}"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
             </div>
 
-            <!-- Reset Filters Link -->
-            <div class="text-right">
-                <a href="{{ route('admin.dashboard') }}" class="text-sm text-indigo-600 hover:text-indigo-900">Reset
-                    Filter</a>
+            <div>
+                <label for="class_id" class="block text-sm font-medium text-gray-700">Kelas</label>
+                <select name="class_id" id="class_id"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="">Semua</option>
+                    @foreach ($classRooms as $class)
+                        <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>
+                            {{ $class->nama_kelas }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
+
+            <div>
+                <label for="gender" class="block text-sm font-medium text-gray-700">Jenis Kelamin</label>
+                <select name="gender" id="gender"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="">Semua</option>
+                    <option value="Laki-laki" {{ request('gender') == 'Laki-laki' ? 'selected' : '' }}>Laki-laki
+                    </option>
+                    <option value="Perempuan" {{ request('gender') == 'Perempuan' ? 'selected' : '' }}>Perempuan
+                    </option>
+                </select>
+            </div>
+
+            <div>
+                <label for="angkatan" class="block text-sm font-medium text-gray-700">Angkatan</label>
+                <select name="angkatan" id="angkatan"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="">Semua</option>
+                    @foreach ($batchYears as $year)
+                        <option value="{{ $year }}" {{ request('angkatan') == $year ? 'selected' : '' }}>
+                            {{ $year }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <button type="submit"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center">
+                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z">
+                    </path>
+                </svg>
+                Filter
+            </button>
+
+            <a href="{{ route('admin.dashboard') }}" class="text-sm text-indigo-600 hover:text-indigo-900">Reset</a>
         </form>
     </div>
 

@@ -1,64 +1,67 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\ClassRoomController;
 use App\Http\Controllers\ClusteringController;
+use Illuminate\Support\Facades\Route;
 
-// Halaman awal
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
+
+// Public routes
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Halaman dashboard
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-// Rute profile untuk pengguna
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-
-// Grup rute untuk admin
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    // Rute halaman utama admin
-    Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('dashboard');
-
-    Route::resource('students', StudentController::class);
-
-    Route::get('/forms', [StudentController::class, 'create'])->name('forms');
-    // Route::get('/forms', [StudentController::class, 'store'])->name('admin.students.store');
-
-    Route::get('/class', [ClassRoomController::class, 'index'])->name('class');
-    Route::post('/class', [ClassRoomController::class, 'store'])->name('class.store');
-    Route::get('/class/{classRoom}/edit', [ClassRoomController::class, 'edit'])->name('class.edit');
-    Route::put('/class/{classRoom}', [ClassRoomController::class, 'update'])->name('class.update');
-    Route::delete('/class/{classRoom}', [ClassRoomController::class, 'destroy'])->name('class.destroy');
-
-    Route::get('/tables', [ClusteringController::class, 'index'])->name('tables');  // This will make it accessible as 'admin.tables'
-    Route::post('/clustering/calculate', [ClusteringController::class, 'calculate'])->name('clustering.calculate');
-
-    Route::get('/ui-elements', function () {
-        return view('admin.ui-elements');
-    })->name('ui-elements');
-
-    // Resource controller untuk user, role, dan permission
-    Route::resource('users', UserController::class);
-    Route::resource('roles', RoleController::class);
-    Route::resource('permissions', PermissionController::class);
-});
-
-// Grup rute untuk permission tertentu
-Route::middleware(['auth', 'permission:publish articles'])->group(function () {
-    // Tambahkan rute dengan permission jika diperlukan
-});
-
-// Rute otentikasi
+// Authentication routes
 require __DIR__.'/auth.php';
+
+// Authenticated user routes
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Admin routes
+    Route::middleware('role:admin')
+        ->prefix('admin')
+        ->name('admin.')
+        ->group(function () {
+            // Admin dashboard
+            Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('dashboard');
+
+            // Student management
+            Route::resource('students', StudentController::class);
+            Route::get('/forms', [StudentController::class, 'create'])->name('forms');
+
+            // Classroom management
+            Route::controller(ClassRoomController::class)->group(function () {
+                Route::get('/class', 'index')->name('class');
+                Route::post('/class', 'store')->name('class.store');
+                Route::get('/class/{classRoom}/edit', 'edit')->name('class.edit');
+                Route::put('/class/{classRoom}', 'update')->name('class.update');
+                Route::delete('/class/{classRoom}', 'destroy')->name('class.destroy');
+            });
+
+            // Clustering functionality
+            Route::controller(ClusteringController::class)->group(function () {
+                Route::get('/tables', 'index')->name('tables');
+                Route::post('/clustering/calculate', 'calculate')->name('clustering.calculate');
+            });
+
+            // Profile management
+            Route::controller(ProfileController::class)->group(function () {
+                Route::get('/profile', 'edit')->name('profile.edit');
+                Route::patch('/profile', 'update')->name('profile.update');
+                Route::delete('/profile', 'destroy')->name('profile.destroy');
+            });
+
+            // User, role, and permission management
+            Route::resource('users', UserController::class);
+            Route::resource('roles', RoleController::class);
+            Route::resource('permissions', PermissionController::class);
+        });
+});

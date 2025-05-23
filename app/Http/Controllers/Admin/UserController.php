@@ -66,7 +66,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed',
             'roles' => 'nullable|array',
-            'roles.*' => 'exists:roles,id', // Validate role IDs
+            'roles.*' => 'exists:roles,id',
         ]);
 
         // Update user details

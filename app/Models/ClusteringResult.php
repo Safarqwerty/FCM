@@ -21,8 +21,16 @@ class ClusteringResult extends Model
         'membership_values' => 'array', // Ubah JSON ke array otomatis
     ];
 
+
+    // Di model ClusteringResult
     public function student()
     {
         return $this->belongsTo(Student::class);
+    }
+
+    // Di model Student
+    public function clusteringResult()
+    {
+        return $this->hasOne(ClusteringResult::class);
     }
 }

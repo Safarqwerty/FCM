@@ -19,8 +19,13 @@ class ClusteringController extends Controller
      */
     public function index()
     {
+        // Tambahkan logging untuk debugging
+        Log::info('Accessing clustering index page');
+
         // Ambil hasil clustering terakhir dari database
         $lastResults = $this->getLastResults();
+
+        Log::info('Last results retrieved', ['hasResults' => !is_null($lastResults)]);
 
         if ($lastResults) {
             return view('admin.tables', [
@@ -33,6 +38,8 @@ class ClusteringController extends Controller
         }
 
         // Jika belum ada hasil, tampilkan halaman kosong
+        Log::info('No clustering results found, showing empty view');
+
         return view('admin.tables', [
             'results' => [],
             'stats' => null,
@@ -44,32 +51,63 @@ class ClusteringController extends Controller
 
     private function getLastResults()
     {
-        $clusteringResults = ClusteringResult::with('student')->get();
+        try {
+            Log::info('Fetching clustering results from database');
 
-        if ($clusteringResults->isEmpty()) {
+            $clusteringResults = ClusteringResult::with(['student', 'student.classRoom'])->get();
+
+            Log::info('Retrieved clustering results', ['count' => $clusteringResults->count()]);
+
+            if ($clusteringResults->isEmpty()) {
+                Log::info('No clustering results found in database');
+                return null;
+            }
+
+            $results = [];
+            foreach ($clusteringResults as $result) {
+                // Pastikan relasi student ada
+                if (!$result->student) {
+                    Log::warning('Student relation not found for clustering result', ['id' => $result->id]);
+                    continue;
+                }
+
+                // Pastikan relasi classRoom ada
+                if (!$result->student->classRoom) {
+                    Log::warning('ClassRoom relation not found for student', ['student_id' => $result->student->id]);
+                    continue;
+                }
+
+                $results[] = [
+                    'student' => $result->student,
+                    'cluster' => $result->cluster,
+                    'membership_values' => json_decode($result->membership_values),
+                    'confidence' => $result->confidence,
+                    'eligible' => $result->eligible
+                ];
+            }
+
+            if (empty($results)) {
+                Log::warning('No valid results after processing relationship checks');
+                return null;
+            }
+
+            $stats = $this->calculateStatistics($results);
+
+            return [
+                'results' => $results,
+                'stats' => $stats,
+                'iteration_count' => session('last_iteration_count', 0),
+                'objective_function' => session('last_objective_function', 0),
+                'iteration_history' => session('iteration_history', [])
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error in getLastResults: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return null;
         }
-
-        $results = [];
-        foreach ($clusteringResults as $result) {
-            $results[] = [
-                'student' => $result->student,
-                'cluster' => $result->cluster,
-                'membership_values' => json_decode($result->membership_values),
-                'confidence' => $result->confidence,
-                'eligible' => $result->eligible
-            ];
-        }
-
-        $stats = $this->calculateStatistics($results);
-
-        return [
-            'results' => $results,
-            'stats' => $stats,
-            'iteration_count' => session('last_iteration_count', 0),
-            'objective_function' => session('last_objective_function', 0),
-            'iteration_history' => session('iteration_history', [])
-        ];
     }
 
     /**
@@ -78,13 +116,18 @@ class ClusteringController extends Controller
     public function calculate()
     {
         try {
+            Log::info('Starting clustering calculation');
+
             // Hapus hasil clustering sebelumnya
             ClusteringResult::truncate();
+            Log::info('Previous clustering results truncated');
 
-            $students = Student::all();
+            $students = Student::with('classRoom')->get();
+            Log::info('Retrieved students for clustering', ['count' => $students->count()]);
 
             if ($students->isEmpty()) {
-                return redirect()->back()->with('error', 'Tidak ada data siswa untuk diproses.');
+                Log::warning('No students data available for clustering');
+                return redirect()->route('admin.tables')->with('error', 'Tidak ada data siswa untuk diproses.');
             }
 
             $normalizedData = $this->normalizeData($students);
@@ -94,6 +137,8 @@ class ClusteringController extends Controller
             $objectiveFunction = 0;
             $previousObjectiveFunction = 0;
             $iterationHistory = [];
+
+            Log::info('Starting FCM iterations');
 
             do {
                 $previousObjectiveFunction = $objectiveFunction;
@@ -109,13 +154,23 @@ class ClusteringController extends Controller
 
                 $iteration++;
 
+                Log::debug('FCM iteration completed', [
+                    'iteration' => $iteration,
+                    'objective_function' => $objectiveFunction,
+                    'difference' => abs($objectiveFunction - $previousObjectiveFunction)
+                ]);
+
             } while (abs($objectiveFunction - $previousObjectiveFunction) > $this->epsilon &&
                     $iteration < $this->maxIterations);
+
+            Log::info('FCM iterations completed', ['total_iterations' => $iteration]);
 
             $results = $this->determineClusterResults($students, $membershipMatrix);
             $stats = $this->calculateStatistics($results);
 
             // Simpan hasil ke database
+            Log::info('Saving clustering results to database');
+
             foreach ($results as $result) {
                 ClusteringResult::create([
                     'student_id' => $result['student']->id,
@@ -126,6 +181,8 @@ class ClusteringController extends Controller
                 ]);
             }
 
+            Log::info('Successfully saved clustering results', ['count' => count($results)]);
+
             // Simpan informasi iterasi ke session
             session([
                 'last_iteration_count' => $iteration,
@@ -133,17 +190,21 @@ class ClusteringController extends Controller
                 'iteration_history' => $iterationHistory
             ]);
 
-            Log::info('Clustering completed', [
+            Log::info('Clustering completed successfully', [
                 'iterations' => $iteration,
                 'final_objective_function' => $objectiveFunction,
-                'stats' => $stats
+                'total_results' => count($results)
             ]);
 
-            return redirect()->route('clustering.index')->with('success', 'Hasil clustering telah diperbarui.');
+            return redirect()->route('admin.tables')->with('success', 'Hasil clustering telah diperbarui.');
 
         } catch (\Exception $e) {
-            Log::error('Clustering error: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan dalam proses clustering.');
+            Log::error('Clustering error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->route('admin.tables')->with('error', 'Terjadi kesalahan dalam proses clustering: ' . $e->getMessage());
         }
     }
 
@@ -245,16 +306,9 @@ class ClusteringController extends Controller
 
         for ($i = 0; $i < $dataCount; $i++) {
             $row = [];
-            $sum = 0;
-
-            for ($j = 0; $j < $this->numberOfClusters; $j++) {
-                $row[$j] = mt_rand(10, 90) / 100;
-                $sum += $row[$j];
-            }
-
-            for ($j = 0; $j < $this->numberOfClusters; $j++) {
-                $row[$j] /= $sum;
-            }
+            // Gunakan metode yang lebih deterministik untuk inisialisasi
+            $row[0] = 0.5 + (mt_rand(-20, 20) / 100); // Nilai acak antara 0.3 dan 0.7
+            $row[1] = 1 - $row[0]; // Memastikan jumlah keanggotaan = 1
 
             $matrix[] = $row;
         }
@@ -302,24 +356,28 @@ class ClusteringController extends Controller
 
         for ($i = 0; $i < count($data); $i++) {
             $matrix[$i] = [];
-            $denominators = [];
 
-            // Hitung semua jarak terlebih dahulu
-            for ($k = 0; $k < $this->numberOfClusters; $k++) {
-                $distance = $this->calculateDistance($data[$i], $centers[$k]);
-                if ($distance == 0) {
-                    // Jika titik tepat di pusat, berikan keanggotaan penuh ke cluster ini
-                    $matrix[$i] = array_fill(0, $this->numberOfClusters, 0);
-                    $matrix[$i][$k] = 1;
+            for ($j = 0; $j < $this->numberOfClusters; $j++) {
+                $distanceToCurrentCenter = $this->calculateDistance($data[$i], $centers[$j]);
+
+                if ($distanceToCurrentCenter == 0) {
+                    // Jika data point tepat berada di pusat cluster j
+                    $row = array_fill(0, $this->numberOfClusters, 0);
+                    $row[$j] = 1;
+                    $matrix[$i] = $row;
                     continue 2;
                 }
-                $denominators[$k] = pow($distance, 2 / ($this->fuzziness - 1));
-            }
 
-            // Hitung nilai keanggotaan
-            $denominator_sum = array_sum($denominators);
-            for ($j = 0; $j < $this->numberOfClusters; $j++) {
-                $matrix[$i][$j] = $denominators[$j] / $denominator_sum;
+                $sum = 0.0;
+                for ($k = 0; $k < $this->numberOfClusters; $k++) {
+                    $distanceToOtherCenter = $this->calculateDistance($data[$i], $centers[$k]);
+                    $distanceToOtherCenter = max($distanceToOtherCenter, 1e-10); // Hindari pembagian dengan nol
+
+                    $ratio = $distanceToCurrentCenter / $distanceToOtherCenter;
+                    $sum += pow($ratio, 2 / ($this->fuzziness - 1));
+                }
+
+                $matrix[$i][$j] = 1 / $sum;
             }
         }
 
@@ -329,14 +387,13 @@ class ClusteringController extends Controller
     /**
      * Hitung jarak Euclidean.
      */
-    private function calculateDistance($point1, $point2)
+    private function calculateDistance($a, $b)
     {
         $sum = 0;
-        for ($i = 0; $i < count($point1); $i++) {
-            $diff = $point1[$i] - $point2[$i];
-            $sum += $diff * $diff;
+        for ($i = 0; $i < count($a); $i++) {
+            $sum += pow($a[$i] - $b[$i], 2);
         }
-        return sqrt($sum) + 1e-10;  // Tambahkan epsilon kecil untuk menghindari pembagian oleh nol
+        return sqrt($sum);
     }
 
     /**
@@ -362,31 +419,46 @@ class ClusteringController extends Controller
     private function determineClusterResults($students, $membershipMatrix)
     {
         $results = [];
+        $centers = $this->calculateClusterCenters($this->normalizeData($students), $membershipMatrix);
+
+        // Tentukan cluster mana yang merepresentasikan "layak" berdasarkan karakteristik pusat cluster
+        $eligibleCluster = $this->determineEligibleCluster($centers);
 
         foreach ($students as $index => $student) {
-            // Get membership values for current student
             $memberships = $membershipMatrix[$index];
-
-            // Find highest membership value and its corresponding cluster
             $maxMembership = max($memberships);
             $cluster = array_search($maxMembership, $memberships);
 
-            // Calculate confidence score
             $membershipsCopy = $memberships;
             arsort($membershipsCopy);
             $values = array_values($membershipsCopy);
             $confidence = count($values) > 1 ? $values[0] - $values[1] : 1;
 
             $results[] = [
-                'student' => $student, // Simpan object student langsung, bukan sebagai array
+                'student' => $student,
                 'cluster' => $cluster,
                 'membership_values' => $memberships,
                 'confidence' => round($confidence, 4),
-                'eligible' => $cluster == 0  // Cluster 0 dianggap sebagai kelompok layak
+                'eligible' => $cluster == $eligibleCluster
             ];
         }
 
         return $results;
+    }
+
+    private function determineEligibleCluster($centers)
+    {
+        // Karena nilai yang lebih tinggi dalam kriteria normalisasi mengindikasikan kebutuhan lebih tinggi
+        // (misalnya: pendapatan rendah = nilai normalisasi tinggi), maka cluster dengan nilai rata-rata
+        // lebih tinggi kemungkinan adalah cluster "layak"
+        $clusterScores = [];
+
+        for ($i = 0; $i < $this->numberOfClusters; $i++) {
+            $clusterScores[$i] = array_sum($centers[$i]) / count($centers[$i]);
+        }
+
+        // Cluster dengan nilai rata-rata tertinggi dianggap sebagai "layak"
+        return array_search(max($clusterScores), $clusterScores);
     }
 
     /**
@@ -408,6 +480,17 @@ class ClusteringController extends Controller
         }
 
         $totalStudents = count($results);
+
+        if ($totalStudents == 0) {
+            return [
+                'total_students' => 0,
+                'eligible_count' => 0,
+                'not_eligible_count' => 0,
+                'eligible_percentage' => 0,
+                'not_eligible_percentage' => 0,
+                'average_confidence' => 0
+            ];
+        }
 
         return [
             'total_students' => $totalStudents,

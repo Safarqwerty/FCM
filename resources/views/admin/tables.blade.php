@@ -3,12 +3,27 @@
         <div class="d-sm-flex align-items-center justify-between mb-4">
             <h1 class="text-gray-700 text-3xl font-medium">Hasil Clustering Beasiswa</h1>
         </div>
+        <form action="{{ route('admin.clustering.calculate') }}" method="POST">
+            @csrf
+            <button type="submit"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Perbarui Hasil
+            </button>
+        </form>
 
-        @if (isset($message))
-            <div class="alert alert-info">{{ $message }}</div>
+        @if (session('success'))
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
+                <p>{{ session('success') }}</p>
+            </div>
         @endif
 
-        @if (isset($stats))
+        @if (session('error'))
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+                <p>{{ session('error') }}</p>
+            </div>
+        @endif
+
+        @if (isset($stats) && $stats)
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="p-4 bg-blue-100 border-l-4 border-blue-500">
                     <h3 class="text-blue-700 font-bold">Total Siswa</h3>
@@ -59,12 +74,16 @@
                                 // Extract unique classes from the results array
                                 $classes = [];
                                 foreach ($results as $result) {
-                                    $className = $result['student']->classRoom->nama_kelas;
-                                    if (!in_array($className, $classes)) {
-                                        $classes[] = $className;
+                                    if (isset($result['student']->classRoom) && $result['student']->classRoom) {
+                                        $className = $result['student']->classRoom->nama_kelas;
+                                        if (!in_array($className, $classes)) {
+                                            $classes[] = $className;
+                                        }
                                     }
                                 }
-                                sort($classes);
+                                if (!empty($classes)) {
+                                    sort($classes);
+                                }
                             @endphp
                             @foreach ($classes as $class)
                                 <option value="{{ $class }}">{{ $class }}</option>
@@ -86,13 +105,6 @@
                     <div id="filter-info" class="text-sm text-gray-600">
                         Menampilkan semua data
                     </div>
-                    <form action="{{ route('admin.clustering.calculate') }}" method="POST">
-                        @csrf
-                        <button type="submit"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                            Perbarui Hasil
-                        </button>
-                    </form>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -123,14 +135,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($results as $index => $result)
+                            @forelse ($results as $index => $result)
                                 <tr class="bg-white border-b border-gray-200"
                                     data-name="{{ strtolower($result['student']->nama) }}"
-                                    data-class="{{ $result['student']->classRoom->nama_kelas }}"
+                                    data-class="{{ $result['student']->classRoom->nama_kelas ?? 'Unknown' }}"
                                     data-eligible="{{ $result['eligible'] ? '1' : '0' }}">
                                     <td class="px-5 py-5 text-sm row-number">{{ $index + 1 }}</td>
                                     <td class="px-5 py-5 text-sm">{{ $result['student']->nama }}</td>
-                                    <td class="px-5 py-5 text-sm">{{ $result['student']->classRoom->nama_kelas }}</td>
+                                    <td class="px-5 py-5 text-sm">{{ $result['student']->classRoom->nama_kelas ?? 'Unknown' }}</td>
                                     <td class="px-5 py-5 text-sm">Cluster {{ $result['cluster'] + 1 }}</td>
                                     <td class="px-5 py-5 text-sm">
                                         @if ($result['eligible'])
@@ -149,13 +161,24 @@
                                             </span>
                                         @endif
                                     </td>
-                                    @foreach ($result['membership_values'] as $index => $memberships)
-                                        <td class="px-5 py-5 text-sm">
-                                            {{ number_format($memberships, 4) }}
-                                        </td>
-                                    @endforeach
+                                    @if (isset($result['membership_values']) && is_array($result['membership_values']))
+                                        @foreach ($result['membership_values'] as $index => $memberships)
+                                            <td class="px-5 py-5 text-sm">
+                                                {{ number_format($memberships, 4) }}
+                                            </td>
+                                        @endforeach
+                                    @else
+                                        <td class="px-5 py-5 text-sm">-</td>
+                                        <td class="px-5 py-5 text-sm">-</td>
+                                    @endif
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="px-5 py-5 text-sm text-center text-gray-500">
+                                        Tidak ada data hasil clustering. Silakan klik tombol "Perbarui Hasil".
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
 
